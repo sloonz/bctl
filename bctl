@@ -1,0 +1,116 @@
+#!/usr/bin/python 
+
+import socket, sys, select, argparse, urllib.request, os.path, subprocess
+
+def readLine(sock):
+	l = b""
+	while True:
+		c = sock.recv(1)
+		if c == b"\n":
+			yield l.decode('utf-8')
+			l = b""
+		elif c == "":
+			raise StopIteration
+		else:
+			l += c
+
+p = argparse.ArgumentParser(description = 'Execute javascript in your browser')
+p.add_argument("instance", nargs = '?', default = None, help = "Instance in which javascript will be executed")
+p.add_argument("--list", "-l", help = "List instances", action = "store_true")
+p.add_argument("--file", "-f", help = "File to execute (- is for STDIN)", default = "-")
+p.add_argument("--execute", "-e", help = "Execute given javascript argument", default = None)
+p.add_argument("--no-coffee", "-c", help = "Don't try to use coffee-script to preprocess the javascript", action = "store_true")
+p.add_argument("--no-jquery", "-j", help = "Don't prepend jQuery to the script", action = "store_true")
+args = p.parse_args()
+
+s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+s.connect(('localhost', 12345))
+
+# Find instances list
+s.sendall(b"LIST\n")
+instances = []
+for line in readLine(s):
+	if line == "":
+		break
+	active = False
+	if line.startswith('* '):
+		active = True
+		line = line[2:]
+	line = line.split(" ", 2)
+	instances.append((active, line[0], line[1], line[2])) 
+
+# Handle --list
+if args.list:
+	for instance in instances:
+		if instance[0]:
+			print('[', end="")
+		print("%s: (%s) %s" % (instance[1], instance[2], instance[3]), end="")
+		if instance[0]:
+			print(']', end="")
+		print()
+	sys.exit(0)
+
+# Find instance
+if args.instance is None:
+	for instance in instances:
+		if instance[0]:
+			args.instance = instance[1]
+else:
+	try:
+		int(args.instance)
+	except:
+		for instance in instances:
+			if args.instance in instance[2] + " " + instance[3]:
+				args.instance = str(instance[1])
+				if instance[0]:
+					break
+
+# Find code
+has_stdin = True
+if args.execute:
+	code = args.execute.encode('utf-8')
+else:
+	if args.file == "-":
+		has_stdin = False
+		code = sys.stdin.read().encode('utf-8')
+	else:
+		code = open(args.file).read()
+
+# Preprocess with coffee script
+if not args.no_coffee:
+	code = subprocess.Popen(["coffee", "-cpe", code], stdout = subprocess.PIPE).communicate()[0]
+
+# Prepend jquery to the script
+if not args.no_jquery:
+	jquery_path = os.path.expanduser("~/.cache/jquery.min.js")
+	if os.path.exists(jquery_path):
+		jquery = open(jquery_path).read().encode('utf-8')
+	else:
+		jquery = urllib.request.urlopen("http://code.jquery.com/jquery.min.js").read()
+	code = jquery + b"\n" + code
+
+# Eval code
+s.sendall(b"EVAL " + str(len(code)).encode('utf-8') + b" " + args.instance.encode('utf-8') + b"\n")
+s.sendall(code)
+s.sendall(b"CLOSE\n")
+
+p = select.epoll()
+p.register(s, select.EPOLLIN)
+if has_stdin:
+	p.register(sys.stdin, select.EPOLLIN)
+
+# Redirect stdin to script, and script output to stdout
+while True:
+	fd, event = p.poll(-1, 1)[0]
+	if fd == 0:
+		data = sys.stdin.read(1024).encode('utf-8')
+		if data:
+			s.sendall(data)
+		else:
+			p.unregister(fd)
+	else:
+		data = s.recv(1024)
+		if data:
+			os.write(1, data)
+		else:
+			break
