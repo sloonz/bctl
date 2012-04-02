@@ -24,20 +24,33 @@ p.add_argument("--no-jquery", "-j", help = "Don't prepend jQuery to the script",
 args = p.parse_args()
 
 s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-s.connect(('localhost', 12345))
+s.connect(('localhost', 12346))
 
 # Find instances list
 s.sendall(b"LIST\n")
+browsers = []
 instances = []
 for line in readLine(s):
 	if line == "":
 		break
-	active = False
-	if line.startswith('* '):
-		active = True
-		line = line[2:]
-	line = line.split(" ", 2)
-	instances.append((active, line[0], line[1], line[2])) 
+	bid = line.split()[0]
+	browsers.append(bid)
+	bindex = browsers.index(bid)
+
+	s2 = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+	s2.connect(('localhost', 12346))
+	s2.sendall(("TUNNEL " + bid + "\n").encode('utf-8'))
+	s2.sendall(b"LIST\n")
+	for line in readLine(s2):
+		if line == "":
+			break
+		active = False
+		if line.startswith('* '):
+			active = True
+			line = line[2:]
+		line = line.split(" ", 2)
+		instances.append((active, str(bindex) + ":" + line[0], line[1], line[2])) 
+	s2.sendall(b"CLOSE\n")
 
 # Handle --list
 if args.list:
@@ -55,15 +68,20 @@ if args.instance is None:
 	for instance in instances:
 		if instance[0]:
 			args.instance = instance[1]
+			break
 else:
 	try:
-		int(args.instance)
+		bindex, inst = args.instance.split(":")
+		int(bindex), int(inst)
 	except:
 		for instance in instances:
 			if args.instance in instance[2] + " " + instance[3]:
-				args.instance = str(instance[1])
+				args.instance = instance[1]
 				if instance[0]:
 					break
+		else:
+			print("Can't find instance")
+			sys.exit(1)
 
 # Find code
 has_stdin = True
@@ -90,7 +108,12 @@ if not args.no_jquery:
 	code = jquery + b"\n" + code
 
 # Eval code
-s.sendall(b"EVAL " + str(len(code)).encode('utf-8') + b" " + args.instance.encode('utf-8') + b"\n")
+bindex, inst = args.instance.split(":")
+bindex, inst = int(bindex), int(inst)
+s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+s.connect(('localhost', 12346))
+s.sendall(b"TUNNEL " + browsers[bindex].encode('utf-8') + b"\n")
+s.sendall(b"EVAL " + str(len(code)).encode('utf-8') + b" " + str(inst).encode('utf-8') + b"\n")
 s.sendall(code)
 s.sendall(b"CLOSE\n")
 

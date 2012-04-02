@@ -1,5 +1,5 @@
-class BCTLClient
-	constructor: (@sock, @instance)->
+class BCTLConnection
+	constructor: (@sock)->
 		@utf8conv = Cc["@mozilla.org/intl/utf8converterservice;1"].getService(Ci.nsIUTF8ConverterService)
 
 		@output = @sock.openOutputStream(Ci.nsITransport.OPEN_BLOCKING, 0, 0)
@@ -12,47 +12,8 @@ class BCTLClient
 
 		@input.asyncWait(this, 0, 0, Cc["@mozilla.org/thread-manager;1"].getService().mainThread)
 	
-	onInputStreamReady: (input)->
-		try
-			@input.available()
-		catch error
-			this.close()
-			return
-
-		line = this.readLine()
-		if /^EVAL (\d+) (\d+)$/.test(line)
-			match = /^EVAL (\d+) (\d+)$/.exec(line)
-			size = parseInt(match[1])
-			inst = parseInt(match[2])
-			code = this.read(size)
-
-			doc = gBrowser.getBrowserAtIndex(inst).contentDocument
-			sb = new Cu.Sandbox(doc.nodePrincipal, {sandboxPrototype: doc.defaultView})
-			for func in ["print", "println", "read", "readLine", "close", "log"]
-				sb.importFunction(this[func].bind(this), func)
-			try
-				Cu.evalInSandbox(code, sb)
-			catch error
-				userChrome.log("Error in script: " + error, "bctl")
-		if line == "LIST"
-			res = []
-			idx = 0
-			while idx < gBrowser.tabs.length
-				tab = gBrowser.tabs[idx]
-				if tab == gBrowser.selectedTab
-					this.print("* ")
-				this.println(idx.toString() + " " + gBrowser.getBrowserForTab(tab).contentDocument.location + " " + tab.label)
-				idx++
-			this.println("")
-		
-		if line == "CLOSE"
-			this.close()
-		else
-			@input.asyncWait(this, 0, 0, Cc["@mozilla.org/thread-manager;1"].getService().mainThread)
-		return
-	
 	log: (s)->
-		userChrome.log(s)
+		userChrome.log(s, "bctl")
 		return
 	
 	close: ->
@@ -85,19 +46,80 @@ class BCTLClient
 		@utf8out.writeString(s)
 	
 	println: (s)->
-		this.print(s)
-		this.print("\n")
+		this.print(s.toString() + "\n")
 
-class BCTLInstance
-	constructor: (port, @window)->
-		@sock = Cc["@mozilla.org/network/server-socket;1"].createInstance(Ci.nsIServerSocket)
-		@sock.init(port, true, -1)
-		@sock.asyncListen(this)
+class BCTLMaster extends BCTLConnection
+	constructor: (@host, @port)->
+		super(this.connect())
+		this.println("REGISTER firefox")
 	
-	onSocketAccepted: (serverSocket, clientSocket)->
-		new BCTLClient(clientSocket, this)
+	connect: ->
+		Cc["@mozilla.org/network/socket-transport-service;1"].
+			getService(Ci.nsISocketTransportService).
+			createTransport(null, 0, @host, @port, null)
+	
+	onInputStreamReady: (input)->
+		try
+			@input.available()
+		catch error
+			this.close()
+			return
+
+		line = this.readLine()
+		if line == "PING"
+			this.println(line)
+		else if /^CONN /.test(line)
+			match = /^CONN (.+)/.exec(line)
+			cid = match[1]
+			slave = new BCTLSlave(this.connect())
+			slave.println("CONN " + cid)
+
+		@input.asyncWait(this, 0, 0, Cc["@mozilla.org/thread-manager;1"].getService().mainThread)
+	
+	finalize: ->
+		this.println("CLOSE")
+		this.close()
+
+class BCTLSlave extends BCTLConnection
+	onInputStreamReady: (input)->
+		try
+			@input.available()
+		catch error
+			this.close()
+			return
+
+		line = this.readLine()
+		if /^EVAL (\d+) (\d+)$/.test(line)
+			match = /^EVAL (\d+) (\d+)$/.exec(line)
+			size = parseInt(match[1])
+			inst = parseInt(match[2])
+			code = this.read(size)
+
+			doc = gBrowser.getBrowserAtIndex(inst).contentDocument
+			sb = new Cu.Sandbox(doc.nodePrincipal, {sandboxPrototype: doc.defaultView})
+			for func in ["print", "println", "read", "readLine", "close", "log"]
+				sb.importFunction(this[func].bind(this), func)
+			try
+				Cu.evalInSandbox(code, sb)
+			catch error
+				this.log("Error in script: " + error)
+		if line == "LIST"
+			res = []
+			idx = 0
+			while idx < gBrowser.tabs.length
+				tab = gBrowser.tabs[idx]
+				if tab == gBrowser.selectedTab
+					this.print("* ")
+				this.println(idx.toString() + " " + gBrowser.getBrowserForTab(tab).contentDocument.location + " " + tab.label)
+				idx++
+			this.println("")
+		
+		if line == "CLOSE"
+			this.close()
+		else
+			@input.asyncWait(this, 0, 0, Cc["@mozilla.org/thread-manager;1"].getService().mainThread)
 		return
 
-com ?= {}
-com.github ?= {}
-com.github.bctl ?= new BCTLInstance(12345, this)
+
+if document.location.toString() == "chrome://browser/content/browser.xul"
+	new BCTLMaster("127.0.0.1", 12346)
