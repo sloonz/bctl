@@ -64,8 +64,8 @@ the `bctl-firefox.uc.coffee` file with `coffee`, copy it into your
 `chrome/` folder, and instruct userChromeJS to load it :
 
     coffee -c bctl-firefox.uc.coffee
-    cp bctl-firefox.uc.js ~/.mozilla/firefox/*/chrome
-    echo 'userChrome.import("bctl-firefox.uc.js", "UChrm");' >> ~/.mozilla/firefox/*/chrome
+    cp bctl-firefox.uc.js ~/.mozilla/firefox/*/chrome/
+    echo 'userChrome.import("bctl-firefox.uc.js", "UChrm");' >> ~/.mozilla/firefox/*/chrome/userChrome.js
 
 Ensure that bctld is running, restart firefox, and test your installation :
 
