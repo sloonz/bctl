@@ -70,3 +70,13 @@ the `bctl-firefox.uc.coffee` file with `coffee`, copy it into your
 Ensure that bctld is running, restart firefox, and test your installation :
 
     bctl -e 'println("Hello, world !")'
+
+# API
+
+Scripts will have acces to the normal DOM API, but not to the privileged API a firefox (much like GreaseMonkey). Instead, bctl will expose some functions :
+
+* `readLine()`, which reads a line from stdin
+* `read(n)`, which reads exactly n characters from stdin
+* `log(msg)`, which prints a message in the console
+* `print(msg)`, which prints a message to stdout
+* `printlin(msg)`, equivalent to `print(msg + "\n")`
