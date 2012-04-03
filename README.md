@@ -79,4 +79,4 @@ Scripts will have acces to the normal DOM API, but not to the privileged API a f
 * `read(n)`, which reads exactly n characters from stdin
 * `log(msg)`, which prints a message in the console
 * `print(msg)`, which prints a message to stdout
-* `printlin(msg)`, equivalent to `print(msg + "\n")`
+* `println(msg)`, equivalent to `print(msg + "\n")`
