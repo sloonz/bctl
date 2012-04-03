@@ -20,23 +20,23 @@ CoffeeScript (`->` operator).
 Pipes work the other way, too. Let’s say you want to scroll to “Most
 discussed” on Slashdot. Of course, you can simply do this :
 
-   bctl -e '$(document).scrollTop($("#mostdiscussed-title").offset().top)'
+    bctl -e '$(document).scrollTop($("#mostdiscussed-title").offset().top)'
 
 but let’s say that “mostdiscussed” comes from stdin (because it
 comes from a script, for example). Then, you can do this :
 
-   echo mostdiscussed | bctl -ne '$(document).scrollTop($("#"+readLine()+"-title").offset().top)'
+    echo mostdiscussed | bctl -ne '$(document).scrollTop($("#"+readLine()+"-title").offset().top)'
 
 (note the `-n` flag: this tells to `bctl` not to close the connection
 immediatly after sending the script)
 
 You can pass arguments to your scripts, too :
 
-   bctl -e 'println("Hello, " + args[0])' . world
+    bctl -e 'println("Hello, " + args[0])' . world
 
 JSON-formatted arguments are supported :
 
-   bctl -e 'println("Hello, " + args[0]["name"])' . '{"name": "world"}'
+    bctl -e 'println("Hello, " + args[0]["name"])' . '{"name": "world"}'
 
 # Installation
 
