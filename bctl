@@ -1,6 +1,6 @@
 #!/usr/bin/python 
 
-import socket, sys, select, argparse, urllib.request, os.path, subprocess
+import socket, sys, select, argparse, urllib.request, os.path, subprocess, json
 
 def readLine(sock):
 	l = b""
@@ -16,12 +16,22 @@ def readLine(sock):
 
 p = argparse.ArgumentParser(description = 'Execute javascript in your browser')
 p.add_argument("instance", nargs = '?', default = None, help = "Instance in which javascript will be executed")
+p.add_argument("args", nargs = '*', default = [], help = "Arguments to pass to the script (JSON formatted)")
 p.add_argument("--list", "-l", help = "List instances", action = "store_true")
 p.add_argument("--file", "-f", help = "File to execute (- is for STDIN)", default = "-")
 p.add_argument("--execute", "-e", help = "Execute given javascript argument", default = None)
 p.add_argument("--no-coffee", "-c", help = "Don't try to use coffee-script to preprocess the javascript", action = "store_true")
 p.add_argument("--no-jquery", "-j", help = "Don't prepend jQuery to the script", action = "store_true")
 args = p.parse_args()
+
+newargs = []
+for a in args.args:
+	try:
+		json.loads(a)
+		newargs.append(a)
+	except:
+		newargs.append(json.dumps(a))
+args.args = newargs
 
 s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 s.connect(('localhost', 12346))
@@ -64,7 +74,7 @@ if args.list:
 	sys.exit(0)
 
 # Find instance
-if args.instance is None:
+if args.instance is None or args.instance == ".":
 	for instance in instances:
 		if instance[0]:
 			args.instance = instance[1]
@@ -92,7 +102,9 @@ else:
 		has_stdin = False
 		code = sys.stdin.read().encode('utf-8')
 	else:
-		code = open(args.file).read()
+		code = open(args.file, 'rb').read()
+
+code = b"args = [" + ",".join(args.args).encode('utf-8') + b"]\n" + code
 
 # Preprocess with coffee script
 if not args.no_coffee:
