@@ -1,6 +1,6 @@
 #!/usr/bin/python 
 
-import socket, sys, select, argparse, urllib.request, os.path, subprocess, json
+import socket, sys, select, argparse, urllib.request, os.path, subprocess, json, fcntl
 
 def readLine(sock):
 	l = b""
@@ -22,6 +22,7 @@ p.add_argument("--file", "-f", help = "File to execute (- is for STDIN)", defaul
 p.add_argument("--execute", "-e", help = "Execute given javascript argument", default = None)
 p.add_argument("--no-coffee", "-c", help = "Don't try to use coffee-script to preprocess the javascript", action = "store_true")
 p.add_argument("--no-jquery", "-j", help = "Don't prepend jQuery to the script", action = "store_true")
+p.add_argument("--no-close", "-n", help = "Don't ask to close connection after transmitting the script", action = "store_true")
 args = p.parse_args()
 
 newargs = []
@@ -84,12 +85,14 @@ else:
 		bindex, inst = args.instance.split(":")
 		int(bindex), int(inst)
 	except:
+		found = False
 		for instance in instances:
 			if args.instance in instance[2] + " " + instance[3]:
+				found = True
 				args.instance = instance[1]
 				if instance[0]:
 					break
-		else:
+		if not found:
 			print("Can't find instance")
 			sys.exit(1)
 
@@ -127,21 +130,28 @@ s.connect(('localhost', 12346))
 s.sendall(b"TUNNEL " + browsers[bindex].encode('utf-8') + b"\n")
 s.sendall(b"EVAL " + str(len(code)).encode('utf-8') + b" " + str(inst).encode('utf-8') + b"\n")
 s.sendall(code)
-s.sendall(b"CLOSE\n")
+if not args.no_close:
+	s.sendall(b"CLOSE\n")
 
 p = select.epoll()
 p.register(s, select.EPOLLIN)
-if has_stdin:
-	p.register(sys.stdin, select.EPOLLIN)
+if has_stdin and args.no_close:
+	fcntl.fcntl(0, fcntl.F_SETFL, fcntl.fcntl(0, fcntl.F_GETFL) | os.O_NONBLOCK)
+	p.register(0, select.EPOLLIN)
 
 # Redirect stdin to script, and script output to stdout
 while True:
-	fd, event = p.poll(-1, 1)[0]
+	try:
+		fd, event = p.poll(-1, 1)[0]
+	except KeyboardInterrupt:
+		s.close()
+		sys.exit(0)
 	if fd == 0:
 		data = sys.stdin.read(1024).encode('utf-8')
 		if data:
 			s.sendall(data)
 		else:
+			s.sendall(b"CLOSE\n")
 			p.unregister(fd)
 	else:
 		data = s.recv(1024)

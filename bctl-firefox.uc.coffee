@@ -1,3 +1,5 @@
+mainThread = Cc["@mozilla.org/thread-manager;1"].getService(Ci.nsIThreadManager).mainThread
+
 class BCTLConnection
 	constructor: (@sock)->
 		@utf8conv = Cc["@mozilla.org/intl/utf8converterservice;1"].getService(Ci.nsIUTF8ConverterService)
@@ -10,7 +12,7 @@ class BCTLConnection
 		@sinput = Cc["@mozilla.org/scriptableinputstream;1"].createInstance(Ci.nsIScriptableInputStream)
 		@sinput.init(@input)
 
-		@input.asyncWait(this, 0, 0, Cc["@mozilla.org/thread-manager;1"].getService().mainThread)
+		@input.asyncWait(this, 0, 0, mainThread)
 	
 	log: (s)->
 		userChrome.log(s, "bctl")
@@ -28,7 +30,11 @@ class BCTLConnection
 		l = ""
 		loop
 			c = @sinput.read(1)
-			if c == "" or c == "\n"
+			if c == ""
+				@input.asyncWait({onInputStreamReady:(s)->}, 0, 0, mainThread)
+				while @sinput.available() == 0
+					mainThread.processNextEvent(true)
+			if c == "\n"
 				return @utf8conv.convertStringToUTF8(l, "UTF-8", true)
 			l += c
 	
@@ -74,7 +80,7 @@ class BCTLMaster extends BCTLConnection
 			slave = new BCTLSlave(this.connect())
 			slave.println("CONN " + cid)
 
-		@input.asyncWait(this, 0, 0, Cc["@mozilla.org/thread-manager;1"].getService().mainThread)
+		@input.asyncWait(this, 0, 0, mainThread)
 	
 	finalize: ->
 		this.println("CLOSE")
