@@ -46,7 +46,6 @@ for line in readLine(s):
 		break
 	bid = line.split()[0]
 	browsers.append(bid)
-	bindex = browsers.index(bid)
 
 	s2 = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 	s2.connect(('localhost', 12346))
@@ -60,7 +59,7 @@ for line in readLine(s):
 			active = True
 			line = line[2:]
 		line = line.split(" ", 2)
-		instances.append((active, str(bindex) + ":" + line[0], line[1], line[2])) 
+		instances.append((active, bid + ":" + line[0], line[1], line[2]))
 	s2.sendall(b"CLOSE\n")
 
 # Handle --list
@@ -81,11 +80,14 @@ if args.instance is None or args.instance == ".":
 			args.instance = instance[1]
 			break
 else:
-	try:
-		bindex, inst = args.instance.split(":")
-		int(bindex), int(inst)
-	except:
-		found = False
+	found = False
+	path = args.instance.strip(":").split(":")
+	for instance in instances:
+		if instance[1].split(":")[-len(path):] == path:
+			args.instance = instance[1]
+			found = True
+			break
+	if not found:
 		for instance in instances:
 			if args.instance in instance[2] + " " + instance[3]:
 				found = True
@@ -123,11 +125,10 @@ if not args.no_jquery:
 	code = jquery + b"\n" + code
 
 # Eval code
-bindex, inst = args.instance.split(":")
-bindex, inst = int(bindex), int(inst)
+bid, inst = args.instance.rsplit(":", 1)
 s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 s.connect(('localhost', 12346))
-s.sendall(b"TUNNEL " + browsers[bindex].encode('utf-8') + b"\n")
+s.sendall(b"TUNNEL " + bid.encode('utf-8') + b"\n")
 s.sendall(b"EVAL " + str(len(code)).encode('utf-8') + b" " + str(inst).encode('utf-8') + b"\n")
 s.sendall(code)
 if not args.no_close:

@@ -55,9 +55,9 @@ class BCTLConnection
 		this.print(s.toString() + "\n")
 
 class BCTLMaster extends BCTLConnection
-	constructor: (@host, @port)->
+	constructor: (@host, @port, id)->
 		super(this.connect())
-		this.println("REGISTER firefox")
+		this.println("REGISTER "+id)
 	
 	connect: ->
 		Cc["@mozilla.org/network/socket-transport-service;1"].
@@ -126,6 +126,25 @@ class BCTLSlave extends BCTLConnection
 			@input.asyncWait(this, 0, 0, Cc["@mozilla.org/thread-manager;1"].getService().mainThread)
 		return
 
-
 if document.location.toString() == "chrome://browser/content/browser.xul"
-	new BCTLMaster("127.0.0.1", 12346)
+	this.org ?= {}
+	org.github ?= {}
+	org.github.bctl ?= {}
+	org.github.bctl.browserId ?= (->
+		lock =  Cc["@mozilla.org/file/directory_service;1"].getService(Ci.nsIProperties).get("ProfD", Ci.nsILocalFile)
+		lock.append("lock")
+		lock = lock.target
+		lock.substr(lock.indexOf(":+")+2)
+	)()
+	org.github.bctl.windowId ?= (->
+		we = Cc["@mozilla.org/appshell/window-mediator;1"].getService(Ci.nsIWindowMediator).getEnumerator(null)
+		wid = 0
+		while we.hasMoreElements()
+			w = we.getNext()
+			if w.org? and w.org.github? and w.org.github.bctl? and w.org.github.bctl.windowId?
+				wid = w.org.github.bctl.windowId + 1 if w.org.github.bctl.windowId >= wid
+		return wid
+
+	)()
+	org.github.bctl.instanceId = org.github.bctl.browserId + ":" +  org.github.bctl.windowId
+	org.github.bctl.master ?= new BCTLMaster("127.0.0.1", 12346, org.github.bctl.instanceId)

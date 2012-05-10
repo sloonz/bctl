@@ -66,15 +66,15 @@ func doTunnel(conn *net.TCPConn, bid string) {
 }
 
 func doRegister(conn *net.TCPConn, bname string) {
-	fmt.Fprintf(os.Stderr, "New master: %v\n", conn.RemoteAddr().String())
+	fmt.Fprintf(os.Stderr, "New master: %v\n", bname)
 
 	ch := make(chan string)
-	browsers[conn.RemoteAddr().String()] = browser{conn, bname, ch}
+	browsers[bname] = browser{conn, bname, ch}
 
 	defer conn.Close()
 	defer close(ch)
-	defer delete(browsers, conn.RemoteAddr().String())
-	defer fmt.Fprintf(os.Stderr, "[master %v] closed\n", conn.RemoteAddr().String())
+	defer delete(browsers, bname)
+	defer fmt.Fprintf(os.Stderr, "[master %v] closed\n", bname)
 
 	go (func() {
 		for {
@@ -88,7 +88,7 @@ func doRegister(conn *net.TCPConn, bname string) {
 				return
 			}
 			if err != nil {
-				fmt.Fprintf(os.Stderr, "[master %v]: write(): %v\n", conn.RemoteAddr().String(), err.Error())
+				fmt.Fprintf(os.Stderr, "[master %v]: write(): %v\n", bname, err.Error())
 				return
 			}
 		}
@@ -109,7 +109,7 @@ func doRegister(conn *net.TCPConn, bname string) {
 			break
 		}
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "[master %v]: read(): %v\n", conn.RemoteAddr().String(), err.Error())
+			fmt.Fprintf(os.Stderr, "[master %v]: read(): %v\n", bname, err.Error())
 			break
 		}
 	}
