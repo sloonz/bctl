@@ -113,7 +113,7 @@ code = b"args = [" + ",".join(args.args).encode('utf-8') + b"]\n" + code
 
 # Preprocess with coffee script
 if not args.no_coffee:
-	code = subprocess.Popen(["coffee", "-cpe", code], stdout = subprocess.PIPE).communicate()[0]
+	code = subprocess.Popen(["coffee", "-cs"], stdout = subprocess.PIPE, stdin = subprocess.PIPE).communicate(code)[0]
 
 # Prepend jquery to the script
 if not args.no_jquery:
