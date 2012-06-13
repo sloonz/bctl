@@ -14,12 +14,19 @@ def readLine(sock):
 		else:
 			l += c
 
+def preprocess(code, no_coffee):
+	if not no_coffee:
+		return subprocess.Popen(["coffee", "-cs"], stdin=subprocess.PIPE, stdout=subprocess.PIPE).communicate(code)[0] + b"\n"
+	else:
+		return code + b"\n"
+
 p = argparse.ArgumentParser(description = 'Execute javascript in your browser')
 p.add_argument("instance", nargs = '?', default = None, help = "Instance in which javascript will be executed")
 p.add_argument("args", nargs = '*', default = [], help = "Arguments to pass to the script (JSON formatted)")
 p.add_argument("--list", "-l", help = "List instances", action = "store_true")
-p.add_argument("--file", "-f", help = "File to execute (- is for STDIN)", default = "-")
-p.add_argument("--execute", "-e", help = "Execute given javascript argument", default = None)
+p.add_argument("--file", "-f", help = "File to execute (- is for STDIN)", default = [], action = "append")
+p.add_argument("--include", "-i", help = "Same as -f, but never pre-processed by coffee-script", default = [], action = "append")
+p.add_argument("--execute", "-e", help = "Execute given javascript argument", default = [], action = "append")
 p.add_argument("--no-coffee", "-c", help = "Don't try to use coffee-script to preprocess the javascript", action = "store_true")
 p.add_argument("--no-jquery", "-j", help = "Don't prepend jQuery to the script", action = "store_true")
 p.add_argument("--no-close", "-n", help = "Don't ask to close connection after transmitting the script", action = "store_true")
@@ -99,21 +106,32 @@ else:
 			sys.exit(1)
 
 # Find code
+code = b""
 has_stdin = True
-if args.execute:
-	code = args.execute.encode('utf-8')
-else:
-	if args.file == "-":
+if not args.include and not args.execute and not args.file:
+	args.file = ["-"]
+
+# 1. Include files (-i)
+for i in args.include:
+	if i == "-":
 		has_stdin = False
-		code = sys.stdin.read().encode('utf-8')
+		code += sys.stdin.read().encode('utf-8') + b"\n"
 	else:
-		code = open(args.file, 'rb').read()
+		code += open(i, 'rb').read() + b"\n"
 
-code = b"args = [" + ",".join(args.args).encode('utf-8') + b"]\n" + code
+# 2. Files (-f)
+for f in args.file:
+	if f == "-":
+		has_stdin = False
+		code += preprocess(sys.stdin.read().encode('utf-8'), args.no_coffee)
+	else:
+		code += preprocess(open(f, 'rb').read(), args.no_coffee)
 
-# Preprocess with coffee script
-if not args.no_coffee:
-	code = subprocess.Popen(["coffee", "-cs"], stdout = subprocess.PIPE, stdin = subprocess.PIPE).communicate(code)[0]
+# 3. Command-line (-e)
+for e in args.execute:
+	code += preprocess(e.encode('utf-8'), args.no_coffee)
+
+code = b"args = [" + ",".join(args.args).encode('utf-8') + b"];\n" + code
 
 # Prepend jquery to the script
 if not args.no_jquery:
