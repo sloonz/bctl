@@ -17,19 +17,6 @@ slashdot headlines :
 Careful readers will recognize jQuery constructs (`$`, selectors) and
 CoffeeScript (`->` operator).
 
-Pipes work the other way, too. Let’s say you want to scroll to “Most
-discussed” on Slashdot. Of course, you can simply do this :
-
-    bctl -e '$(document).scrollTop($("#mostdiscussed-title").offset().top)'
-
-but let’s say that “mostdiscussed” comes from stdin (because it
-comes from a script, for example). Then, you can do this :
-
-    echo mostdiscussed | bctl -ne '$(document).scrollTop($("#"+readLine()+"-title").offset().top)'
-
-(note the `-n` flag: this tells to `bctl` not to close the connection
-immediatly after sending the script)
-
 You can pass arguments to your scripts, too :
 
     bctl -e 'println("Hello, " + args[0])' . world
@@ -47,27 +34,19 @@ First, install the two bctl dependencies :
 
     wget http://code.jquery.com/jquery-1.7.2.min.js -O ~/.cache/jquery.min.js
 
-`bctl` has 3 parts : the frontend (`bctl`), a daemon (`bctld`), and a
-Firefox userChromeJS script.
+`bctl` has 2 parts : the frontend (`bctl`) and a browser-specific backend
+(only Firefox is supported right now)
 
 To install the frontend, just copy `bctl` somewhere in your `$PATH`
 (or modify your `$PATH`, that’s up to you).
 
-To install the daemon, first install [Go](http://golang.org), then type
-`go build` inside the `bctld/` directory. This will produce a `bctld`
-executable, that you must run before any browser (you can put it in your
-`.xsession` file, for example).
+To install the Firefox extension, just run the `makexpi` script and then
+open it with firefox :
 
-To install the Firefox script, first install the
-[userChromeJS](http://userchromejs.mozdev.org/) extension. Then, compile
-the `bctl-firefox.uc.coffee` file with `coffee`, copy it into your
-`chrome/` folder, and instruct userChromeJS to load it :
+    ./makexpi
+    firefox bctl.xpi
 
-    coffee -c bctl-firefox.uc.coffee
-    cp bctl-firefox.uc.js ~/.mozilla/firefox/*/chrome/
-    echo 'userChrome.import("bctl-firefox.uc.js", "UChrm");' >> ~/.mozilla/firefox/*/chrome/userChrome.js
-
-Ensure that bctld is running, restart firefox, and test your installation :
+Restart firefox, and test your installation :
 
     bctl -e 'println("Hello, world !")'
 
@@ -75,8 +54,6 @@ Ensure that bctld is running, restart firefox, and test your installation :
 
 Scripts will have acces to the normal DOM API, but not to the privileged API a firefox (much like GreaseMonkey). Instead, bctl will expose some functions :
 
-* `readLine()`, which reads a line from stdin
-* `read(n)`, which reads exactly n characters from stdin
 * `log(msg)`, which prints a message in the console
 * `print(msg)`, which prints a message to stdout
 * `println(msg)`, equivalent to `print(msg + "\n")`
