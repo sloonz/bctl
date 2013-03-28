@@ -50,6 +50,21 @@ Restart firefox, and test your installation :
 
     bctl -e 'println("Hello, world !")'
 
+# PhantomJS backend
+
+There is also a PhantomJS backend located at
+`phantomjs/phantomjs-bctl.js`.
+
+    $ phantomjs phantomjs-bctl.js --port=32001 http &
+    $ bctl -p 32001 -l
+    [0: (http://whatsmyuseragent.com/) Whats My User Agent?]
+    $ bctl -p 32001 -e 'println $("#body_lbUserAgent").text()'
+    Mozilla/5.0 (Unknown; Linux i686) AppleWebKit/537.17 (KHTML, like Gecko) Chrome/24.0.1312.60 Safari/537.17
+    $ killall phantomjs
+
+You can omit `--port=` and `-p` to use default port, but it may be used
+by firefox backend.
+
 # API
 
 Scripts will have acces to the normal DOM API, but not to the privileged API a firefox (much like GreaseMonkey). Instead, bctl will expose some functions :
