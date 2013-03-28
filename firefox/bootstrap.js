@@ -36,7 +36,7 @@ var bctl = {
 					isActive = true;
 
 				res.push({
-					"id": i,
+					"id": i.toString(),
 					"url": browser.currentURI.spec,
 					"title": (tab ? tab.label : null),
 					"status": (browser.contentDocument ? browser.contentDocument.readyState : null),
