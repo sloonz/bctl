@@ -55,7 +55,7 @@ Restart firefox, and test your installation :
 There is also a PhantomJS backend located at
 `phantomjs/phantomjs-bctl.js`.
 
-    $ phantomjs phantomjs-bctl.js --port=32001 http &
+    $ phantomjs phantomjs-bctl.js --port=32001 http://whatsmyuseragent.com/ &
     $ bctl -p 32001 -l
     [0: (http://whatsmyuseragent.com/) Whats My User Agent?]
     $ bctl -p 32001 -e 'println $("#body_lbUserAgent").text()'
