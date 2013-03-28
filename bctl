@@ -43,7 +43,7 @@ p.add_argument("--include", "-i", help = "Same as -f, but never pre-processed by
 p.add_argument("--execute", "-e", help = "Execute given javascript argument", default = [], action = "append")
 p.add_argument("--no-coffee", "-c", help = "Don't try to use coffee-script to preprocess the javascript", action = "store_true")
 p.add_argument("--no-jquery", "-j", help = "Don't prepend jQuery to the script", action = "store_true")
-p.add_argument("--port", "-p", help = "Port on which the browser listens for commands", action = "store_true", default = DEFAULT_PORT)
+p.add_argument("--port", "-p", help = "Port on which the browser listens for commands", action = "store", default = DEFAULT_PORT)
 args = p.parse_args()
 
 newargs = []
