@@ -14,16 +14,17 @@ def request(url, data = None):
 		return json.loads(resp.read().decode('utf-8'))
 	elif resp.code // 100 == 5:
 		print("Server error: %s" % resp.reason, file = sys.stderr)
-		print(resp.read(), file = sys.stderr)
+		print(resp.read().decode('utf-8'), file = sys.stderr)
 	elif resp.code == 404:
 		print("Can't find instance", file = sys.stderr)
 	elif resp.code == 400:
 		err = json.loads(resp.read().decode('utf-8'))
 		if err.get("output"):
 			print(err.output)
-		stack = "\n".join(("  %s" % _) for _ in err["stack"].split("\n"))
-		print("Javascript %s: %s (at line %s)\n" % (err["name"], err["message"], err["lineNumber"]), file = sys.stderr)
-		print("Stack trace:\n%s" % stack, file=sys.stderr)
+		print("Javascript %s: %s (at line %s)" % (err["name"], err["message"], err.get("lineNumber", "?")), file = sys.stderr)
+		if err.get("stack"):
+			stack = "\n".join(("  %s" % _) for _ in err["stack"].split("\n"))
+			print("\nStack trace:\n%s" % stack, file=sys.stderr)
 	else:
 		print("Bad response code: %d %s" % (resp.code, resp.reason), file = sys.stderr)
 	sys.exit(1)
