@@ -88,17 +88,19 @@ var bctl = {
 			};
 
 			sb.importFunction(function(text) {
+				text = (text === null) ? "null" : ((text === undefined) ? "undefined" : text.toString());
 				if(res.output === null)
-					res.output = text.toString();
+					res.output = text;
 				else
-					res.output += text.toString();
+					res.output += text;
 			}, "print");
 
 			sb.importFunction(function(text) {
+				text = (text === null) ? "null" : ((text === undefined) ? "undefined" : text.toString());
 				if(res.output === null)
-					res.output = text.toString() + "\n";
+					res.output = text + "\n";
 				else
-					res.output += text.toString() + "\n";
+					res.output += text + "\n";
 			}, "println");
 
 			sb.importFunction(function(text) {

@@ -11,15 +11,16 @@ function doExecute(page, code) {
 			"value": null
 		};
 
-		var print = function(txt) {
+		var print = function(text) {
+			text = (text === null) ? "null" : ((text === undefined) ? "undefined" : text.toString());
 			if(__res.output)
-				__res.output += txt.toString();
+				__res.output += text;
 			else
-				__res.output = txt.toString();
+				__res.output = text;
 		};
 
-		var println = function(txt) {
-				print(txt.toString() + "\n");
+		var println = function(text) {
+		       print(text); print("\n");
 		};
 
 		var log = function(txt) {
