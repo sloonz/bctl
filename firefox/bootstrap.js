@@ -148,6 +148,12 @@ var bctl = {
 				this.registerBrowser(document.defaultView.gBrowser);
 			}
 			break;
+		case "close":
+			for(var i in this.tabs) {
+				if(this.tabs[i][0] === event.originalTarget.gBrowser) {
+					delete this.tabs[i];
+				}
+			}
 		case "TabOpen":
 			var mainBrowser = event.target.ownerDocument.defaultView.gBrowser;
 			this.tabs[this.tabCount++] = [mainBrowser, mainBrowser.getBrowserForTab(event.target)];
@@ -177,6 +183,12 @@ var bctl = {
 		browser.tabContainer.addEventListener("TabClose", this, false);
 		this.shutdownCallbacks.push(function() {
 			browser.tabContainer.removeEventListener("TabClose", this, false);
+		});
+
+		var w = browser.ownerDocument.defaultView;
+		w.addEventListener("close", this, true);
+		this.shutdownCallbacks.push(function() {
+			w.removeEventListener("close", this, true);
 		});
 	}
 };
