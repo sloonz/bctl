@@ -154,6 +154,7 @@ var bctl = {
 					delete this.tabs[i];
 				}
 			}
+			break;
 		case "TabOpen":
 			var mainBrowser = event.target.ownerDocument.defaultView.gBrowser;
 			this.tabs[this.tabCount++] = [mainBrowser, mainBrowser.getBrowserForTab(event.target)];
