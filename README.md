@@ -27,7 +27,7 @@ JSON-formatted arguments are supported :
 
 1. Build `bctl` with `npm install && npm run build`
 
-2. Copy `bctl` and somewhere in your `$PATH`
+2. Copy `build/bctl` somewhere in your `$PATH`
 
 3. Register the native app by running `bctl` without any argument
 
@@ -47,7 +47,7 @@ WebExtension API.
 See [this page](https://developer.mozilla.org/en-US/Add-ons/WebExtensions/Content_scripts#Content_script_environment)
 for more information.
 
-`bctl` also exposes those two helper functions :
+`bctl` also exposes those three helper functions :
 
 * `log(msg)`, which prints a message to stderr
 * `print(msg)`, which prints a message to stdout
