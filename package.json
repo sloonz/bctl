@@ -1,0 +1,16 @@
+{
+  "devDependencies": {
+    "babel-core": "^6.22.1",
+    "babel-loader": "^6.2.10",
+    "babel-preset-es2015": "^6.22.0",
+    "debug": "^2.6.0",
+    "mkdirp": "^0.5.1",
+    "user-home": "^2.0.0",
+    "webpack": "^2.2.1",
+    "yargs": "^6.6.0"
+  },
+  "license": "ISC",
+  "scripts": {
+    "build": "webpack -p && chmod +x build/bctl"
+  }
+}

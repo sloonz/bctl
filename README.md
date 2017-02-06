@@ -1,21 +1,17 @@
 # Presentation
 
-Recently, attempts (like Uzbl) has been made to bring Unix philosophy to
-web browsers. However, they focused on /configuration/, not /data/. You
-could use small programs, scripts, pipes and other funny things to
-manage cookies, bookmargs, actions, and so on. But the data managed by
-the browser — the webpage — was still unreachable to the common Unix
-toolkit (pipes, grep, shell scripts, and so on). bctl is an attempt to
-fix that.
+There is some attempts (like Uzbl) to bring Unix philosophy to web
+browsers. However, they focus on /configuration/, not /data/. You can use
+small programs, scripts, pipes and other funny things to manage cookies,
+bookmarks, actions, and so on. But the data managed by the browser —
+the webpage — is still unreachable to the common Unix toolkit (pipes,
+grep, shell scripts, and so on). bctl is an attempt to fix that.
 
-`bctl` is a small command-line tool which try to communicate with the
-webpage. For example, let’s say you want to sort alphabetically all
-slashdot headlines :
+`bctl` is a small command-line tool which try to communicate with a
+webpage hosted by your browser. For example, let’s say you want to
+sort alphabetically all slashdot headlines :
 
-    bctl -e '$("h2.story a").each (_,s)->println($(s).text())' slashdot | sort
-
-Careful readers will recognize jQuery constructs (`$`, selectors) and
-CoffeeScript (`->` operator).
+    bctl -e '$("h2 .story-title>a").each((_,t)=>println($(t).text()))' slashdot | sort
 
 You can pass arguments to your scripts, too :
 
@@ -27,48 +23,45 @@ JSON-formatted arguments are supported :
 
 # Installation
 
-First, install the two bctl dependencies :
-[CoffeeScript](http://coffeescript.org/) and
-[jQuery](http://jquery.com/). The `coffee` command must be in your
-`$PATH`, and you must put the `jquery.min.js` file into `~/.cache`.
+`bctl` requires `nodejs`.
 
-    wget http://code.jquery.com/jquery-1.7.2.min.js -O ~/.cache/jquery.min.js
+1. Build `bctl` with `npm install && npm run build`
 
-`bctl` has 2 parts : the frontend (`bctl`) and a browser-specific backend
-(only Firefox is supported right now)
+2. Copy `bctl` and somewhere in your `$PATH`
 
-To install the frontend, just copy `bctl` somewhere in your `$PATH`
-(or modify your `$PATH`, that’s up to you).
+3. Register the native app by running `bctl` without any argument
 
-To install the Firefox extension, just run the `makexpi` script and then
-open it with firefox :
+4. Intall your browser extension
 
-    ./makexpi
-    firefox bctl.xpi
-
-Restart firefox, and test your installation :
+5. Test your installation :
 
     bctl -e 'println("Hello, world !")'
 
-# PhantomJS backend
-
-There is also a PhantomJS backend located at
-`phantomjs/phantomjs-bctl.js`.
-
-    $ phantomjs phantomjs-bctl.js --port=32001 http://whatsmyuseragent.com/ &
-    $ bctl -p 32001 -l
-    [0: (http://whatsmyuseragent.com/) Whats My User Agent?]
-    $ bctl -p 32001 -e 'println $("#body_lbUserAgent").text()'
-    Mozilla/5.0 (Unknown; Linux i686) AppleWebKit/537.17 (KHTML, like Gecko) Chrome/24.0.1312.60 Safari/537.17
-    $ killall phantomjs
-
-You can omit `--port=` and `-p` to use default port, but it may be used
-by firefox backend.
+(Note: you must do step 2 before step 3. If you have installed the
+browser extension before step 2, restart your browser after step 2)
 
 # API
 
-Scripts will have acces to the normal DOM API, but not to the privileged API a firefox (much like GreaseMonkey). Instead, bctl will expose some functions :
+Scripts will have acces to the DOM API, and a small subset of the
+WebExtension API.
+See [this page](https://developer.mozilla.org/en-US/Add-ons/WebExtensions/Content_scripts#Content_script_environment)
+for more information.
 
-* `log(msg)`, which prints a message in the console
+`bctl` also exposes those two helper functions :
+
+* `log(msg)`, which prints a message to stderr
 * `print(msg)`, which prints a message to stdout
 * `println(msg)`, equivalent to `print(msg + "\n")`
+
+# Changes from 1.0
+
+* Dropped PhantomJS support (for now at least. Open an issue if it is
+important for you !)
+
+* Dropped CoffeScript support. ES2015 is natively supported by most
+browsers now, and brings most of the eye-candiness of CoffeeScript.
+
+* Use Unix sockets instead of TCP sockets. You no longer need to specify
+the port on the command-line, and all browsers are accessed simultaneously.
+
+* Added Chrome support.

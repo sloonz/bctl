@@ -1,2 +1,7 @@
 *.xpi
 *.swp
+*~
+*.zip
+*.min.js
+build
+node_modules
