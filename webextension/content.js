@@ -3,7 +3,7 @@ function executeScript(code, args, print, println) {
 	return eval('(function(){'+code+'})()');
 }
 
-browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
+browser.runtime.onMessage.addListener(message => {
 	const sendClientReply = reply => browser.runtime.sendMessage({type: 'client-reply', client: message.clientId, reply});
 
 	switch(message.type) {
